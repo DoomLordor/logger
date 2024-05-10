@@ -2,6 +2,7 @@ package logger
 
 import (
 	"io"
+	"os"
 	"sync"
 	"time"
 
@@ -9,11 +10,6 @@ import (
 )
 
 const BaseLoggerName = "base"
-
-type Config struct {
-	LogLevel string `env:"LOG_LEVEL" envDefault:"INFO"`
-	LogJson  bool   `env:"LOG_JSON" envDefault:"true"`
-}
 
 type Logger struct {
 	name   string
@@ -24,10 +20,18 @@ type Logger struct {
 var baseLogger *Logger
 var loggerMap map[string]*Logger
 
-func InitLogger(w io.Writer, config Config) {
+func InitLogger(w io.Writer, config Config) error {
 	loggerMap = make(map[string]*Logger, 10)
 	if !config.LogJson {
 		w = zerolog.ConsoleWriter{Out: w, TimeFormat: time.RFC3339}
+	}
+
+	if config.Telegram.Check() {
+		var err error
+		w, err = newTelegramWriter(w, config.Telegram)
+		if err != nil {
+			return err
+		}
 	}
 
 	level := ParseLogLevel(config.LogLevel)
@@ -38,9 +42,13 @@ func InitLogger(w io.Writer, config Config) {
 		logger: &logger,
 	}
 	loggerMap[BaseLoggerName] = baseLogger
+	return nil
 }
 
 func NewLogger(name string) *Logger {
+	if baseLogger == nil {
+		_ = InitLogger(os.Stdin, Config{LogLevel: "ERROR"})
+	}
 	zeroLogger := baseLogger.logger.With().Str("module", name).Logger()
 	logger := &Logger{
 		name:   name,

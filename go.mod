@@ -2,7 +2,10 @@ module github.com/DoomLordor/logger
 
 go 1.21
 
-require github.com/rs/zerolog v1.32.0
+require (
+	github.com/go-telegram-bot-api/telegram-bot-api/v5 v5.5.1
+	github.com/rs/zerolog v1.32.0
+)
 
 require (
 	github.com/mattn/go-colorable v0.1.13 // indirect

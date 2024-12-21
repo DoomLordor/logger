@@ -16,11 +16,12 @@ type telegramWriter struct {
 	subsystem  string
 }
 
-func newTelegramWriter(w io.Writer, cfg TelegramConfig) (*telegramWriter, error) {
+func newTelegramWriter(w io.Writer, cfg TelegramConfig) (io.Writer, error) {
 	bot, err := tgbotapi.NewBotAPI(cfg.Token)
 	if err != nil {
 		return nil, err
 	}
+
 	writer := &telegramWriter{
 		baseWriter: w,
 		bot:        bot,
@@ -28,6 +29,7 @@ func newTelegramWriter(w io.Writer, cfg TelegramConfig) (*telegramWriter, error)
 		namespace:  cfg.Namespace,
 		subsystem:  cfg.Subsystem,
 	}
+
 	return writer, nil
 }
 
@@ -44,6 +46,8 @@ func (t *telegramWriter) WriteLevel(level zerolog.Level, p []byte) (int, error) 
 		if err != nil {
 			return 0, err
 		}
+	default:
 	}
+
 	return t.baseWriter.Write(p)
 }

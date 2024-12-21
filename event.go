@@ -15,7 +15,7 @@ func (e *Event) Msg(msg string) {
 }
 
 func (e *Event) Send() {
-	e.Msg("")
+	e.event.Send()
 }
 
 func (e *Event) Msgf(format string, v ...interface{}) {

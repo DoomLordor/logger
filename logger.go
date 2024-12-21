@@ -4,7 +4,6 @@ import (
 	"io"
 	"os"
 	"sync"
-	"time"
 
 	"github.com/rs/zerolog"
 )
@@ -20,22 +19,26 @@ type Logger struct {
 var baseLogger *Logger
 var loggerMap map[string]*Logger
 
-func InitLogger(w io.Writer, config Config) error {
+func init() {
+	_ = InitLogger(os.Stdout)
+}
+
+func WrapWriter(w io.Writer, options ...WriterOption) io.Writer {
+	for _, option := range options {
+		w = option(w)
+	}
+
+	return w
+}
+
+func InitLogger(w io.Writer, options ...Option) error {
 	loggerMap = make(map[string]*Logger, 10)
-	if !config.LogJson {
-		w = zerolog.ConsoleWriter{Out: w, TimeFormat: time.RFC3339}
+
+	logger := zerolog.New(w).With().Timestamp().Logger()
+	for _, option := range options {
+		logger = option(logger)
 	}
 
-	if config.Telegram.Check() {
-		var err error
-		w, err = newTelegramWriter(w, config.Telegram)
-		if err != nil {
-			return err
-		}
-	}
-
-	level := ParseLogLevel(config.LogLevel)
-	logger := zerolog.New(w).Level(level).With().Timestamp().Logger()
 	baseLogger = &Logger{
 		name:   BaseLoggerName,
 		mu:     &sync.RWMutex{},
@@ -46,9 +49,6 @@ func InitLogger(w io.Writer, config Config) error {
 }
 
 func NewLogger(name string) *Logger {
-	if baseLogger == nil {
-		_ = InitLogger(os.Stdin, Config{LogLevel: "ERROR"})
-	}
 	zeroLogger := baseLogger.logger.With().Str("module", name).Logger()
 	logger := &Logger{
 		name:   name,
